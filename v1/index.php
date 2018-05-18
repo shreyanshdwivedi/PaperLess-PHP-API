@@ -197,4 +197,92 @@ $app->post('/userLogin',function() use ($app){
     echoResponse(200,$response);
 });
 
+$app->post('/showRestaurants',function() use ($app){
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Creating a response array
+    $response = array();
+
+    //Getting user detail
+    $restaurants = $db->showRestaurants();
+    $response['restaurants'] = $restaurants;
+ 
+    //Displaying the response
+    echoResponse(200,$response);
+});
+
+$app->post('/addRestaurant',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('name','email','contact','address'));
+ 
+    //getting post values
+    $name = $app->request->post('name');
+    $address = $app->request->post('address');
+    $email = $app->request->post('email');
+    $contact = $app->request->post('contact');
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->addRestaurant($name,$email,$contact,$address);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        //Making the response error false
+        $response["error"] = false;
+        //Adding a success message
+        $response["message"] = "Your Restaurant is successfully added";
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Oops! An error occurred while adding your Restaurant";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Sorry, this email already existed";
+        echoResponse(200, $response);
+    }
+});
+
+$app->post('/likeRestaurant',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('uid','rid'));
+ 
+    //getting post values
+    $uid = $app->request->post('uid');
+    $rid = $app->request->post('rid');
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->likeRestaurant($uid,$rid);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        //Making the response error false
+        $response["error"] = false;
+        //Adding a success message
+        $response["message"] = "Success";
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Error";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    }
+});
+
 $app->run();

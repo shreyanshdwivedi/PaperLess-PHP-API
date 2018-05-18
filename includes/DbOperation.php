@@ -104,4 +104,101 @@ class DbOperation
         //returning the student
         return $user;
     }
+
+        //Method will create a new student
+    public function addRestaurant($name,$email,$contact,$address){
+ 
+        //First we will check whether the student is already registered or not
+        if (!$this->isRestaurantExists($email)) {
+
+            $likes = 0;
+            $stars = 0;
+            //Crating an statement
+            $stmt = $this->con->prepare("INSERT INTO restaurants(RName, email, contactNum, RAddress, likes, stars) values(?, ?, ?, ?, ?, ?)");
+ 
+            //Binding the parameters
+            $stmt->bind_param("ssssss", $name, $email, $contact, $address, $likes, $stars);
+ 
+            //Executing the statment
+            $result = $stmt->execute();
+ 
+            //Closing the statment
+            $stmt->close();
+ 
+            //If statment executed successfully
+            if ($result) {
+                //Returning 0 means student created successfully
+                return 0;
+            } else {
+                //Returning 1 means failed to create student
+                return 1;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 2;
+        }
+    }
+
+    public function showRestaurants(){
+        $stmt = "SELECT * FROM restaurants";
+        $result = $this->con->query($stmt);
+        $restaurants = $result->fetch_all();
+        return $restaurants;
+    }
+
+    //Checking whether a student already exist
+    private function isRestaurantExists($email) {
+        $stmt = $this->con->prepare("SELECT id from restaurants WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $stmt->store_result();
+        $num_rows = $stmt->num_rows;
+        $stmt->close();
+        return $num_rows > 0;
+    }
+
+    //This method will return student detail
+    public function getRestaurant($email){
+        $stmt = $this->con->prepare("SELECT * FROM resturants WHERE email=?");
+        $stmt->bind_param("s",$email);
+        $stmt->execute();
+        //Getting the student result array
+        $restaurant = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        //returning the student
+        return $restaurant;
+    }
+
+    public function likeRestaurant($uid,$rid){
+        if (!$this->isLikeExists($uid,$rid)) {
+            $stmt = $this->con->prepare("INSERT INTO restaurantLikes(userID, restaurantID) VALUES(?,?)");
+            $stmt->bind_param("ss",$uid,$rid);
+            $result = $stmt->execute();
+            //Closing the statment
+            $stmt->close();
+
+            //If statment executed successfully
+            if ($result) {
+                //Returning 0 means student created successfully
+                return 0;
+            } else {
+                //Returning 1 means failed to create student
+                return 1;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 2;
+        }
+    }
+
+    //Checking whether a student already exist
+    private function isLikeExists($uid,$rid) {
+        $stmt = $this->con->prepare("SELECT id from restaurantLikes WHERE userID = ? AND restaurantID = ?");
+        $stmt->bind_param("ss", $uid, $rid);
+        $stmt->execute();
+        $stmt->store_result();
+        $num_rows = $stmt->num_rows;
+        $stmt->close();
+        return $num_rows > 0;
+    }
 }
