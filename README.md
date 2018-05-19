@@ -50,7 +50,7 @@
     - uid (userID)
     - bid (bookID)
 
-9. *POST* - ```https://paperlessapi.000webhostapp.com/verifyUser```
+9. *GET* - ```https://paperlessapi.000webhostapp.com/verifyUser```
   
 	*Required Parameters*  
     - username
@@ -60,3 +60,14 @@
   
 	*Required Parameters*  
     - username
+    
+11. *POST* - ```https://paperlessapi.000webhostapp.com/followRestaurant```
+  
+	*Required Parameters*  
+    - username
+    - rid (RestaurantID)
+
+12. *POST* - ```https://paperlessapi.000webhostapp.com/userFollowedRestaurants```
+  
+	*Required Parameters*  
+    - username  

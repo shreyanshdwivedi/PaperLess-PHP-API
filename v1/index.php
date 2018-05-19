@@ -197,13 +197,13 @@ $app->post('/userLogin',function() use ($app){
     echoResponse(200,$response);
 });
 
-$app->post('/verifyUser',function() use ($app){
+$app->get('/verifyUser',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('username','apikey'));
+    // verifyRequiredParams(array('username','apikey'));
  
     //getting post values
-    $username = $app->request->post('username');
-    $apikey = $app->request->post('apikey');
+    $username = $app->request->get('username');
+    $apikey = $app->request->get('apikey');
  
     //Creating DbOperation object
     $db = new DbOperation();
@@ -344,6 +344,80 @@ $app->post('/likeRestaurant',function() use ($app){
  
     //If the result returned is 2 means user already exist
     }
+});
+
+$app->post('/followRestaurant',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('username','rid'));
+ 
+    //getting post values
+    $username = $app->request->post('username');
+    $rid = $app->request->post('rid');
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+
+    $response = array();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->followRestaurant($username,$rid);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        //Making the response error false
+        $response["error"] = false;
+        //Adding a success message
+        $response["message"] = "Success";
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Error";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Restaurant already followed";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    }
+});
+
+$app->post('/userFollowedRestaurants',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('username'));
+    
+    //getting post values
+    $username = $app->request->post('username');
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Creating a response array
+    $response = array();
+
+    //Getting user detail
+    $restaurantIDs = $db->userFollowedRestaurants($username);
+    $i = 0;
+
+    foreach($restaurantIDs as $k=>$value){
+        $restaurantID = $value[0];
+        $restaurant = $db->getRestaurant($restaurantID);
+        $response[$i]["id"] = $restaurant["id"];
+        $response[$i]["name"] = $restaurant["RName"];
+        $response[$i]["email"] = $restaurant["email"];
+        $response[$i]["contactNum"] = $restaurant["contactNum"];
+        $response[$i]["likes"] = $restaurant["likes"];
+        $response[$i]["stars"] = $restaurant["stars"];
+        $response[$i]["address"] = $restaurant["RAddress"];
+        $i++;
+    }
+ 
+    //Displaying the response
+    echoResponse(200,$response);
 });
 
 $app->post('/showBooks',function() use ($app){

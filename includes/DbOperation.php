@@ -186,9 +186,9 @@ class DbOperation
     }
 
     //This method will return student detail
-    public function getRestaurant($email){
-        $stmt = $this->con->prepare("SELECT * FROM resturants WHERE email=?");
-        $stmt->bind_param("s",$email);
+    public function getRestaurant($id){
+        $stmt = $this->con->prepare("SELECT * FROM restaurants WHERE id = ?");
+        $stmt->bind_param("s",$id);
         $stmt->execute();
         //Getting the student result array
         $restaurant = $stmt->get_result()->fetch_assoc();
@@ -219,9 +219,41 @@ class DbOperation
         }
     }
 
+    public function followRestaurant($username,$rid){
+        if (!$this->isRFollowExists($username,$rid)) {
+            $stmt = $this->con->prepare("INSERT INTO restaurantFollows(username, restaurantID) VALUES(?,?)");
+            $stmt->bind_param("ss",$username,$rid);
+            $result = $stmt->execute();
+            //Closing the statment
+            $stmt->close();
+
+            //If statment executed successfully
+            if ($result) {
+                //Returning 0 means student created successfully
+                return 0;
+            } else {
+                //Returning 1 means failed to create student
+                return 1;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 2;
+        }
+    }
+
     //Checking whether a student already exist
     private function isRLikeExists($username,$rid) {
         $stmt = $this->con->prepare("SELECT id from restaurantLikes WHERE username = ? AND restaurantID = ?");
+        $stmt->bind_param("ss", $username, $rid);
+        $stmt->execute();
+        $stmt->store_result();
+        $num_rows = $stmt->num_rows;
+        $stmt->close();
+        return $num_rows > 0;
+    }
+
+    private function isRFollowExists($username,$rid) {
+        $stmt = $this->con->prepare("SELECT id from restaurantFollows WHERE username = ? AND restaurantID = ?");
         $stmt->bind_param("ss", $username, $rid);
         $stmt->execute();
         $stmt->store_result();
@@ -324,6 +356,17 @@ class DbOperation
         $stmt->close();
         //returning the student
         return $books;
+    }
+
+    public function userFollowedRestaurants($username){
+        $stmt = $this->con->prepare("SELECT restaurantID FROM restaurantFollows WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        //Getting the student result array
+        $restaurants = $stmt->get_result()->fetch_all();
+        $stmt->close();
+        //returning the student
+        return $restaurants;
     }
 
 }
