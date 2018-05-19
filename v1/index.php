@@ -197,6 +197,48 @@ $app->post('/userLogin',function() use ($app){
     echoResponse(200,$response);
 });
 
+$app->post('/verifyUser',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('username','apikey'));
+ 
+    //getting post values
+    $username = $app->request->post('username');
+    $apikey = $app->request->post('apikey');
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+    $response = array();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->verifyUser($username,$apikey);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        //Making the response error false
+        $response["error"] = false;
+        //Adding a success message
+        $response["message"] = "You are successfully verified";
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Oops! An error occurred while verifying you";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Already verified";
+        echoResponse(200, $response);
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "Wrong credentials";
+        echoResponse(200, $response);
+    }
+});
+
 $app->post('/showRestaurants',function() use ($app){
  
     //Creating DbOperation object
@@ -207,7 +249,18 @@ $app->post('/showRestaurants',function() use ($app){
 
     //Getting user detail
     $restaurants = $db->showRestaurants();
-    $response['restaurants'] = $restaurants;
+
+    $i = 0;
+    foreach($restaurants as $k=>$value){
+        $response[$i]["id"] = $value[0];
+        $response[$i]["name"] = $value[1];
+        $response[$i]["email"] = $value[2];
+        $response[$i]["contact"] = $value[3];
+        $response[$i]["likes"] = $value[4];
+        $response[$i]["address"] = $value[5];
+        $response[$i]["stars"] = $value[6];
+        $i++;
+    }
  
     //Displaying the response
     echoResponse(200,$response);
@@ -254,17 +307,19 @@ $app->post('/addRestaurant',function() use ($app){
 
 $app->post('/likeRestaurant',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('uid','rid'));
+    verifyRequiredParams(array('username','rid'));
  
     //getting post values
-    $uid = $app->request->post('uid');
+    $username = $app->request->post('username');
     $rid = $app->request->post('rid');
  
     //Creating DbOperation object
     $db = new DbOperation();
+
+    $response = array();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->likeRestaurant($uid,$rid);
+    $res = $db->likeRestaurant($username,$rid);
  
     //If the result returned is 0 means success
     if ($res == 0) {
@@ -282,7 +337,146 @@ $app->post('/likeRestaurant',function() use ($app){
         echoResponse(200, $response);
  
     //If the result returned is 2 means user already exist
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Restaurant already liked";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
     }
+});
+
+$app->post('/showBooks',function() use ($app){
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Creating a response array
+    $response = array();
+
+    //Getting user detail
+    $books = $db->showBooks();
+    // $response['books'] = $books;
+    $i = 0;
+    foreach($books as $k=>$value){
+        $response[$i]["id"] = $value[0];
+        $response[$i]["name"] = $value[1];
+        $response[$i]["author"] = $value[2];
+        $response[$i]["publication"] = $value[3];
+        $response[$i]["title"] = $value[4];
+        $i++;
+    }
+ 
+    //Displaying the response
+    echoResponse(200,$response);
+});
+
+$app->post('/likeBook',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('username','bid'));
+ 
+    //getting post values
+    $username = $app->request->post('username');
+    $bid = $app->request->post('bid');
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->likeBook($username,$bid);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        //Making the response error false
+        $response["error"] = false;
+        //Adding a success message
+        $response["message"] = "Success";
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Error";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Book already liked";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    }
+});
+
+$app->post('/bookmark',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('username','bid'));
+ 
+    //getting post values
+    $username = $app->request->post('username');
+    $bid = $app->request->post('bid');
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->bookmark($username,$bid);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        //Making the response error false
+        $response["error"] = false;
+        //Adding a success message
+        $response["message"] = "Success";
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Error";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Book already bookmarked";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    }
+});
+
+$app->post('/userLikedBooks',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('username'));
+    
+    //getting post values
+    $username = $app->request->post('username');
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Creating a response array
+    $response = array();
+
+    //Getting user detail
+    $bookIDs= $db->userLikedBooks($username);
+    $i = 0;
+    foreach($bookIDs as $k=>$value){
+        $bookID = $value[0];
+        $book = $db->getBook($bookID);
+        $response[$i]["id"] = $book["id"];
+        $response[$i]["name"] = $book["BName"];
+        $response[$i]["author"] = $book["author"];
+        $response[$i]["publication"] = $book["publication"];
+        $response[$i]["title"] = $book["title"];
+        $i++;
+    }
+ 
+    //Displaying the response
+    echoResponse(200,$response);
 });
 
 $app->run();

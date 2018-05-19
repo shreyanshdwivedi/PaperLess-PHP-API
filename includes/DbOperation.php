@@ -105,6 +105,34 @@ class DbOperation
         return $user;
     }
 
+    public function verifyUser($username, $apikey){
+        $user = $this->getUser($username);
+        $verified = $user["verified"];
+        if(($verified == 0) && ($user["apiKey"] == $apikey)){
+            $stmt = $this->con->prepare("UPDATE users SET verified=TRUE WHERE username = ?");
+            $stmt->bind_param("s",$username);
+            //Executing the statment
+            $result = $stmt->execute();
+ 
+            //Closing the statment
+            $stmt->close();
+ 
+            //If statment executed successfully
+            if ($result) {
+                //Returning 0 means student created successfully
+                return 0;
+            } else {
+                //Returning 1 means failed to create student
+                return 1;
+            }
+        } else if(($verified == 1) && ($user["apiKey"] == $apikey)){
+            return 2;
+        } else {
+            //returning 2 means user already exist in the database
+            return 3;
+        }
+    }
+
         //Method will create a new student
     public function addRestaurant($name,$email,$contact,$address){
  
@@ -169,10 +197,10 @@ class DbOperation
         return $restaurant;
     }
 
-    public function likeRestaurant($uid,$rid){
-        if (!$this->isLikeExists($uid,$rid)) {
-            $stmt = $this->con->prepare("INSERT INTO restaurantLikes(userID, restaurantID) VALUES(?,?)");
-            $stmt->bind_param("ss",$uid,$rid);
+    public function likeRestaurant($username,$rid){
+        if (!$this->isRLikeExists($username,$rid)) {
+            $stmt = $this->con->prepare("INSERT INTO restaurantLikes(username, restaurantID) VALUES(?,?)");
+            $stmt->bind_param("ss",$username,$rid);
             $result = $stmt->execute();
             //Closing the statment
             $stmt->close();
@@ -192,13 +220,110 @@ class DbOperation
     }
 
     //Checking whether a student already exist
-    private function isLikeExists($uid,$rid) {
-        $stmt = $this->con->prepare("SELECT id from restaurantLikes WHERE userID = ? AND restaurantID = ?");
-        $stmt->bind_param("ss", $uid, $rid);
+    private function isRLikeExists($username,$rid) {
+        $stmt = $this->con->prepare("SELECT id from restaurantLikes WHERE username = ? AND restaurantID = ?");
+        $stmt->bind_param("ss", $username, $rid);
         $stmt->execute();
         $stmt->store_result();
         $num_rows = $stmt->num_rows;
         $stmt->close();
         return $num_rows > 0;
     }
+
+    public function showBooks(){
+        $stmt = "SELECT * FROM books";
+        $result = $this->con->query($stmt);
+        $books = $result->fetch_all();
+        return $books;
+    }
+
+    public function likeBook($username,$bid){
+        if (!$this->isBLikeExists($username,$bid)) {
+            $stmt = $this->con->prepare("INSERT INTO bookLikes(username, bookID) VALUES(?,?)");
+            $stmt->bind_param("ss",$username,$bid);
+            $result = $stmt->execute();
+            //Closing the statment
+            $stmt->close();
+
+            //If statment executed successfully
+            if ($result) {
+                //Returning 0 means student created successfully
+                return 0;
+            } else {
+                //Returning 1 means failed to create student
+                return 1;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 2;
+        }
+    }
+
+    //Checking whether a student already exist
+    private function isBLikeExists($username,$bid) {
+        $stmt = $this->con->prepare("SELECT id from bookLikes WHERE username = ? AND bookID = ?");
+        $stmt->bind_param("ss", $username, $bid);
+        $stmt->execute();
+        $stmt->store_result();
+        $num_rows = $stmt->num_rows;
+        $stmt->close();
+        return $num_rows > 0;
+    }
+
+    //This method will return student detail
+    public function getBook($id){
+        $stmt = $this->con->prepare("SELECT * FROM books WHERE id=?");
+        $stmt->bind_param("s",$id);
+        $stmt->execute();
+        //Getting the student result array
+        $book = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        //returning the student
+        return $book;
+    }
+
+    public function bookmark($username,$bid){
+        if (!$this->isBookmarkExists($username,$bid)) {
+            $stmt = $this->con->prepare("INSERT INTO bookmark(username, bookID) VALUES(?,?)");
+            $stmt->bind_param("ss",$username,$bid);
+            $result = $stmt->execute();
+            //Closing the statment
+            $stmt->close();
+
+            //If statment executed successfully
+            if ($result) {
+                //Returning 0 means student created successfully
+                return 0;
+            } else {
+                //Returning 1 means failed to create student
+                return 1;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 2;
+        }
+    }
+
+    //Checking whether a student already exist
+    private function isBookmarkExists($username,$bid) {
+        $stmt = $this->con->prepare("SELECT id from bookmark WHERE username = ? AND bookID = ?");
+        $stmt->bind_param("ss", $username, $bid);
+        $stmt->execute();
+        $stmt->store_result();
+        $num_rows = $stmt->num_rows;
+        $stmt->close();
+        return $num_rows > 0;
+    }
+
+    public function userLikedBooks($username){
+        $stmt = $this->con->prepare("SELECT bookID FROM bookLikes WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        //Getting the student result array
+        $books = $stmt->get_result()->fetch_all();
+        $stmt->close();
+        //returning the student
+        return $books;
+    }
+
 }
