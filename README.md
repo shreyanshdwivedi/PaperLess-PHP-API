@@ -17,12 +17,18 @@
     - username
     - password  
 
-3. ```https://paperlessapi.000webhostapp.com/showRestaurants```
+3. *GET* - ```https://surpriseapi.000webhostapp.com/verifyUser```
+  
+	*Required Parameters*  
+    - username
+    - apikey 
+
+4. ```https://paperlessapi.000webhostapp.com/showRestaurants```
   
 	*Required Parameters*
     - No params required
 
-4. *POST* - ```https://paperlessapi.000webhostapp.com/addRestaurant```
+5. *POST* - ```https://paperlessapi.000webhostapp.com/addRestaurant```
   
 	*Required Parameters*
     - name
@@ -30,57 +36,63 @@
     - contact
     - address  
 
-5. *POST* - ```https://paperlessapi.000webhostapp.com/likeRestaurant```
+6. *POST* - ```https://paperlessapi.000webhostapp.com/likeRestaurant```
   
 	*Required Parameters*
     - username
-    - rid (RestaurantID)
+    - restaurantID
+
+7. *POST* - ```https://paperlessapi.000webhostapp.com/userLikedRestaurants```
+  
+	*Required Parameters*
+    - username
+
+8. *GET* - ```https://paperlessapi.000webhostapp.com/isRestaurantLiked```
+  
+	*Required Parameters*
+    - username
+    - restaurantID
+
+9. *GET* - ```https://paperlessapi.000webhostapp.com/isRestaurantFollowed```
+  
+	*Required Parameters*
+    - username
+    - restaurantID
+    
+10. *POST* - ```https://paperlessapi.000webhostapp.com/followRestaurant```
+  
+	*Required Parameters*  
+    - username
+    - restaurantID
+
+11. *POST* - ```https://paperlessapi.000webhostapp.com/userFollowedRestaurants```
+  
+	*Required Parameters*  
+    - username 
    
-6. ```https://paperlessapi.000webhostapp.com/showBooks```
+12. ```https://paperlessapi.000webhostapp.com/showBooks```
   
 	*Required Parameters*
     - No params required
 
-7. *GET* - ```https://paperlessapi.000webhostapp.com/likeBook```
+13. *GET* - ```https://paperlessapi.000webhostapp.com/likeBook```
   
 	*Required Parameters*
     - username
-    - bid (bookID)
+    - bookID
 
-8. *POST* - ```https://paperlessapi.000webhostapp.com/bookmark```
+14. *POST* - ```https://paperlessapi.000webhostapp.com/bookmark```
   
 	*Required Parameters*
     - username
-    - bid (bookID)
-
-9. *GET* - ```https://paperlessapi.000webhostapp.com/verifyUser```
-  
-	*Required Parameters*  
-    - username
-    - apikey  
-
-10. *POST* - ```https://paperlessapi.000webhostapp.com/userLikedBooks```
-  
-	*Required Parameters*  
-    - username
+    - bookID 
     
-11. *POST* - ```https://paperlessapi.000webhostapp.com/followRestaurant```
+15. *GET* - ```https://paperlessapi.000webhostapp.com/getBook```
   
 	*Required Parameters*  
-    - username
-    - rid (RestaurantID)
+    - bookID
 
-12. *POST* - ```https://paperlessapi.000webhostapp.com/userFollowedRestaurants```
-  
-	*Required Parameters*  
-    - username 
-    
-13. *GET* - ```https://paperlessapi.000webhostapp.com/getBook```
-  
-	*Required Parameters*  
-    - id (BookId)
-
-14. *POST* - ```https://paperlessapi.000webhostapp.com/addBook```
+16. *POST* - ```https://paperlessapi.000webhostapp.com/addBook```
   
 	*Required Parameters*  
     - name
@@ -88,127 +100,64 @@
     - publication
     - title
     - img
-    - book (File Type)
+    - book (File Type) 
 
-15. *GET* - ```https://paperlessapi.000webhostapp.com/getPublisherBooks```
-  
-	*Required Parameters*  
-    - publisher (Publisher Name)  
-
-16. *GET* - ```https://paperlessapi.000webhostapp.com/getOffers```
+17. *GET* - ```https://paperlessapi.000webhostapp.com/getRestaurantOffers```
 
 	*Required Parameters*  
-    - rid (Restaurant ID)   
+    - restaurant ID
 
-17. *POST* - ```https://paperlessapi.000webhostapp.com/userLikedRestaurants```
-  
-	*Required Parameters*
-    - username
+18. *POST* - ```https://paperlessapi.000webhostapp.com/showOffers```
 
-18. *GET* - ```https://paperlessapi.000webhostapp.com/isRestaurantLiked```
-  
-	*Required Parameters*
-    - username
-    - rid (restaurantID)
+	*Required Parameters*  
+    - No param
 
-19. *GET* - ```https://paperlessapi.000webhostapp.com/isRestaurantFollowed```
-  
-	*Required Parameters*
-    - username
-    - rid (restaurantID)
+19. *POST* - ```https://paperlessapi.000webhostapp.com/addPublisher```
 
-20. *POST* - ```https://paperlessapi.000webhostapp.com/addGiftType```
-  
-	*Required Parameters*
-    - name (unique)
-    - details
-    - image (File Type)
+    *Required Parameters*
+    - name
+    - email
+    - country
+    - image
 
-21. ```https://paperlessapi.000webhostapp.com/showGiftTypes```
-  
-	*Required Parameters*
+20. *POST* - ```https://paperlessapi.000webhostapp.com/showPublishers```
+
+    *Required Parameters*
     - No params required
 
-22. *GET* - ```https://paperlessapi.000webhostapp.com/getGiftType```
-  
-	*Required Parameters*  
-    - id (GiftTypeId)
+21. *GET* - ```https://paperlessapi.000webhostapp.com/getPublisher```
 
-23. *POST* - ```https://paperlessapi.000webhostapp.com/addGift```
-  
-	*Required Parameters*
-    - name (unique)
-    - details
-    - price
-    - giftTypeID
-    - image (File Type)
+    *Required Parameters*
+    - publisherID
 
-24. ```https://paperlessapi.000webhostapp.com/showGifts```
-  
-	*Required Parameters*
+22. *GET* - ```https://paperlessapi.000webhostapp.com/getPublisherBooks```
+
+    *Required Parameters*
+    - publisherID
+
+23. *POST* - ```https://paperlessapi.000webhostapp.com/followPublisher```
+
+    *Required Parameters*
+    - username
+    - publisherID
+
+24. *POST* - ```https://paperlessapi.000webhostapp.com/isPublisherFollowed```
+
+    *Required Parameters*
+    - username
+    - publisherID
+
+25. *POST* - ```https://paperlessapi.000webhostapp.com/getFolowedPublishers```
+
+    *Required Parameters*
+    - username
+
+26. *POST* - ```https://paperlessapi.000webhostapp.com/getRecentBooks```
+
+    *Required Parameters*
     - No params required
 
-25. *GET* - ```https://paperlessapi.000webhostapp.com/getGift```
+27. *POST* - ```https://paperlessapi.000webhostapp.com/userLikedBooks```
   
 	*Required Parameters*  
-    - id (GiftId)
-
-26. *POST* - ```https://paperlessapi.000webhostapp.com/purchaseGift```
-  
-	*Required Parameters*
-    - username
-    - giftID
-    - giftTypeID
-    - paymentID  
-
-27. *POST* - ```https://paperlessapi.000webhostapp.com/sendGift```
-  
-	*Required Parameters*
-    - sender (Sender username)
-    - recipient (Recipient Username)
-    - paymentID (Payment ID of linked gift)
-
-28. *POST* - ```https://paperlessapi.000webhostapp.com/followUser```
-  
-	*Required Parameters*
-    - followedBy (Followed By username)
-    - followedTo (Followed To Username)
-
-29. *POST* - ```https://paperlessapi.000webhostapp.com/isUserFollowed```
-  
-	*Required Parameters*
-    - followedBy (Followed By username)
-    - followedTo (Followed To Username)
-
-30. *GET* - ```https://paperlessapi.000webhostapp.com/getFollowers```
-  
-	*Required Parameters*
-    - username
-
-31. *GET* - ```https://paperlessapi.000webhostapp.com/getFollowing```
-  
-	*Required Parameters*
-    - username
-
-32. *POST* - ```https://paperlessapi.000webhostapp.com/sendFriendRequest```
-  
-	*Required Parameters*
-    - sentBy (username)
-    - sentTo (username)
-
-33. *POST* - ```https://paperlessapi.000webhostapp.com/addFriend```
-  
-	*Required Parameters*
-    - addedBy (username)
-    - addedTo (username)
-
-18. *POST* - ```https://paperlessapi.000webhostapp.com/doesFriendExists```
-  
-	*Required Parameters*
-    - addedBy (username)
-    - addedTo (username)
-
-34. *GET* - ```https://paperlessapi.000webhostapp.com/showFriends```
-  
-	*Required Parameters*
     - username

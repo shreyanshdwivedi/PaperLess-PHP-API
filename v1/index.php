@@ -235,11 +235,7 @@ $app->post('/userLogin',function() use ($app){
         $response['image'] = $user['img'];
         $response['address'] = $user['UAddress'];
         $response['verified'] = $user['verified'];
-        $response['numGiftSent'] = $user['numGiftSent'];
-        $response['numGiftReceived'] = $user['numGiftReceived'];
-        $response['numFollowers'] = $user['numFollowers'];
-        $response['numFollowing'] = $user['numFollowing'];
-        $response['numGiftsPurchased'] = $user['numGiftsPurchased'];
+        $response['timestamp'] = $user['timestamp'];
  
     }else{
         //Generating response
@@ -359,109 +355,13 @@ $app->post('/addRestaurant',function() use ($app){
     }
 });
 
-$app->post('/addBook',function() use ($app){
-    //verifying required parameters
-    verifyRequiredParams(array('name','author','publication','title'));
- 
-    //getting post values
-    $name = $app->request->post('name');
-    $author = $app->request->post('author');
-    $publication = $app->request->post('publication');
-    $title = $app->request->post('title');
-    $likes = 0;
-    $bookmark = 0;
-
-    $target_dir = "../uploads/books/";
-    $target_file = $target_dir . basename($_FILES["book"]["name"]);
-    $uploadOk = 1;
-    $FileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-    $filename = basename( $_FILES['book']['name']);
-    $path_parts = pathinfo($_FILES["book"]["name"]);
-    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
-    $target_book = $target_dir.$image_path;
-
-    if($FileType != "pdf") {
-        $response["bookUpload"] = "Sorry, only pdf files are allowed.";
-        $uploadOk = 0;
-    }
-
-    if ($uploadOk == 1) {
-        if (move_uploaded_file($_FILES["book"]["tmp_name"], $target_book)) {
-            $response["bookUpload"] = "The file ". basename( $_FILES["book"]["name"]). " has been uploaded.";
-            $url = $target_book;
-        } else {
-            $response["bookUpload"] = "Sorry, there was an error uploading your file.";
-        }
-    }
-
-    $target_dir = "../uploads/images/";
-    $target_file = $target_dir . basename($_FILES["image"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-    $filename = basename( $_FILES['image']['name']);
-    $path_parts = pathinfo($_FILES["image"]["name"]);
-    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
-    $target_image = $target_dir.$image_path;
-
-    $check = getimagesize($_FILES["image"]["tmp_name"]);
-    if($check !== false) {
-        $response["error"] = false;
-        $uploadOk = 1;
-    } else {
-        $response["error"] = true;
-        $response["imageUpload"] = "File is not an image.";
-        $uploadOk = 0;
-    }
-
-    if (($response["error"] == false) && ($_FILES["image"]["size"] > 500000)) {
-        $response["error"] = true;
-        $response["imageUpload"] = "Sorry, your file is too large.";
-        $uploadOk = 0;
-    }
-
-    if(($response["error"] == false) && ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg")) {
-        
-        $response["error"] == true;
-        $response["imageUpload"] = "Sorry, only JPG, JPEG, PNG files are allowed.";
-        $uploadOk = 0;
-    }
-
-    if ($uploadOk == 1) {
-        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_image)) {
-            $response["error"] = false;
-            $response["imageUpload"] = "The file ". basename( $_FILES["image"]["name"]). " has been uploaded.";
-            $img = $target_image;
-        } else {
-            $response["error"] = true;
-            $response["imageUpload"] = "Sorry, there was an error uploading your file.";
-        }
-    }
- 
- 
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Calling the method createStudent to add student to the database
-    $res = $db->addBook($name,$author,$publication,$title,$likes,$bookmark,$img,$url);
- 
-    //If the result returned is 0 means success
-    if (($res == 0) && ($url==$target_book) && ($img == $target_image)) {
-        $response["error"] = false;
-        echoResponse(201, $response);
- 
-    } else if ($res == 1) {
-        $response["error"] = true;
-        echoResponse(200, $response);
-    }
-});
-
 $app->post('/likeRestaurant',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('username','rid'));
+    verifyRequiredParams(array('username','restaurantID'));
  
     //getting post values
     $username = $app->request->post('username');
-    $rid = $app->request->post('rid');
+    $restaurantID = $app->request->post('restaurantID');
  
     //Creating DbOperation object
     $db = new DbOperation();
@@ -469,7 +369,7 @@ $app->post('/likeRestaurant',function() use ($app){
     $response = array();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->likeRestaurant($username,$rid);
+    $res = $db->likeRestaurant($username,$restaurantID);
  
     //If the result returned is 0 means success
     if ($res == 0) {
@@ -488,6 +388,18 @@ $app->post('/likeRestaurant',function() use ($app){
  
     //If the result returned is 2 means user already exist
     } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Restaurant with RestaurantID ".$restaurantID." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "User with username ".$username." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 4) {
         $response["error"] = true;
         $response["message"] = "Restaurant already liked";
         echoResponse(200, $response);
@@ -498,11 +410,11 @@ $app->post('/likeRestaurant',function() use ($app){
 
 $app->post('/followRestaurant',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('username','rid'));
+    verifyRequiredParams(array('username','restaurantID'));
  
     //getting post values
     $username = $app->request->post('username');
-    $rid = $app->request->post('rid');
+    $rid = $app->request->post('restaurantID');
  
     //Creating DbOperation object
     $db = new DbOperation();
@@ -510,7 +422,7 @@ $app->post('/followRestaurant',function() use ($app){
     $response = array();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->followRestaurant($username,$rid);
+    $res = $db->followRestaurant($username,$restaurantID);
  
     //If the result returned is 0 means success
     if ($res == 0) {
@@ -528,7 +440,19 @@ $app->post('/followRestaurant',function() use ($app){
         echoResponse(200, $response);
  
     //If the result returned is 2 means user already exist
-    } else if ($res == 2) {
+    }  else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Restaurant with RestaurantID ".$restaurantID." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "User with username ".$username." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 4) {
         $response["error"] = true;
         $response["message"] = "Restaurant already followed";
         echoResponse(200, $response);
@@ -603,6 +527,137 @@ $app->post('/userLikedRestaurants',function() use ($app){
     echoResponse(200,$response);
 });
 
+$app->post('/addBook',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('name','author','publisherID','title', 'salePrice'));
+ 
+    //getting post values
+    $name = $app->request->post('name');
+    $author = $app->request->post('author');
+    $publisherID = $app->request->post('publisherID');
+    $title = $app->request->post('title');
+    $salePrice = $app->request->post('salePrice');
+    $likes = 0;
+    $bookmark = 0;
+
+    $target_dir = "../uploads/books/";
+    $target_file = $target_dir . basename($_FILES["book"]["name"]);
+    $uploadOk = 1;
+    $FileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+    $filename = basename( $_FILES['book']['name']);
+    $path_parts = pathinfo($_FILES["book"]["name"]);
+    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
+    $target_book = $target_dir.$image_path;
+
+    if($FileType != "pdf") {
+        $response["bookUpload"] = "Sorry, only pdf files are allowed.";
+        $uploadOk = 0;
+    }
+
+    if ($uploadOk == 1) {
+        if (move_uploaded_file($_FILES["book"]["tmp_name"], $target_book)) {
+            $response["bookUpload"] = "The file ". basename( $_FILES["book"]["name"]). " has been uploaded.";
+            $url = $target_book;
+        } else {
+            $response["bookUpload"] = "Sorry, there was an error uploading your file.";
+        }
+    }
+
+    $target_dir = "../uploads/images/";
+    $target_file = $target_dir . basename($_FILES["image"]["name"]);
+    $uploadOk = 1;
+    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+    $filename = basename( $_FILES['image']['name']);
+    $path_parts = pathinfo($_FILES["image"]["name"]);
+    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
+    $target_image = $target_dir.$image_path;
+
+    $check = getimagesize($_FILES["image"]["tmp_name"]);
+    if($check !== false) {
+        $response["error"] = false;
+        $uploadOk = 1;
+    } else {
+        $response["error"] = true;
+        $response["imageUpload"] = "File is not an image.";
+        $uploadOk = 0;
+    }
+
+    if (($response["error"] == false) && ($_FILES["image"]["size"] > 500000)) {
+        $response["error"] = true;
+        $response["imageUpload"] = "Sorry, your file is too large.";
+        $uploadOk = 0;
+    }
+
+    if(($response["error"] == false) && ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg")) {
+        
+        $response["error"] == true;
+        $response["imageUpload"] = "Sorry, only JPG, JPEG, PNG files are allowed.";
+        $uploadOk = 0;
+    }
+
+    if ($uploadOk == 1) {
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_image)) {
+            $response["error"] = false;
+            $response["imageUpload"] = "The file ". basename( $_FILES["image"]["name"]). " has been uploaded.";
+            $img = $target_image;
+        } else {
+            $response["error"] = true;
+            $response["imageUpload"] = "Sorry, there was an error uploading your file.";
+        }
+    }
+ 
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->addBook($name,$author,$publisherID,$title,$likes,$bookmark,$img,$url,$salePrice);
+ 
+    //If the result returned is 0 means success
+    if (($res == 0) && ($url==$target_book) && ($img == $target_image)) {
+        $response["error"] = false;
+        echoResponse(201, $response);
+ 
+    } else if ($res == 1) {
+        $response["error"] = true;
+        echoResponse(200, $response);
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Publisher with ID ".$publisherID." does not exists.";
+        echoResponse(200, $response);
+    }
+});
+
+$app->post('/getRecentBooks', function() use ($app){
+    $db = new DbOperation();
+ 
+    //Creating a response array
+    $response = array();
+
+    //Getting user detail
+    $books = $db->showBooks();
+    // $response['books'] = $books;
+    $i = 0;
+    foreach($books as $k=>$value){
+        if(date('Ymd', strtotime($value[10])) < strtotime('-7 day')){
+            $response[$i]["id"] = $value[0];
+            $response[$i]["name"] = $value[1];
+            $response[$i]["author"] = $value[2];
+            $response[$i]["publisherID"] = $value[3];
+            $response[$i]["salePrice"] = $value[5];
+            $response[$i]["likes"] = $value[6];
+            $response[$i]["bookmark"] = $value[7];
+            $response[$i]["img"] = $value[8];
+            $response[$i]["bookUrl"] = $value[9];
+            $response[$i]["timestamp"] = $value[10];
+            $i++;
+        }
+    }
+ 
+    //Displaying the response
+    echoResponse(200,$response);
+});
+
 $app->post('/showBooks',function() use ($app){
  
     //Creating DbOperation object
@@ -619,7 +674,7 @@ $app->post('/showBooks',function() use ($app){
         $response[$i]["id"] = $value[0];
         $response[$i]["name"] = $value[1];
         $response[$i]["author"] = $value[2];
-        $response[$i]["publication"] = $value[3];
+        $response[$i]["publisherID"] = $value[3];
         $response[$i]["title"] = $value[4];
         $i++;
     }
@@ -630,17 +685,17 @@ $app->post('/showBooks',function() use ($app){
 
 $app->post('/likeBook',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('username','bid'));
+    verifyRequiredParams(array('username','bookID'));
  
     //getting post values
     $username = $app->request->post('username');
-    $bid = $app->request->post('bid');
+    $bookID = $app->request->post('bookID');
  
     //Creating DbOperation object
     $db = new DbOperation();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->likeBook($username,$bid);
+    $res = $db->likeBook($username,$bookID);
  
     //If the result returned is 0 means success
     if ($res == 0) {
@@ -659,6 +714,18 @@ $app->post('/likeBook',function() use ($app){
  
     //If the result returned is 2 means user already exist
     } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Book with BookID ".$bookID." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "User with username ".$username." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 4) {
         $response["error"] = true;
         $response["message"] = "Book already liked";
         echoResponse(200, $response);
@@ -669,17 +736,17 @@ $app->post('/likeBook',function() use ($app){
 
 $app->post('/bookmark',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('username','bid'));
+    verifyRequiredParams(array('username','bookID'));
  
     //getting post values
     $username = $app->request->post('username');
-    $bid = $app->request->post('bid');
+    $bookID = $app->request->post('bookID');
  
     //Creating DbOperation object
     $db = new DbOperation();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->bookmark($username,$bid);
+    $res = $db->bookmark($username,$bookID);
  
     //If the result returned is 0 means success
     if ($res == 0) {
@@ -698,6 +765,18 @@ $app->post('/bookmark',function() use ($app){
  
     //If the result returned is 2 means user already exist
     } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Book with BookID ".$bookID." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "User with username ".$username." does not exists";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    }  else if ($res == 4) {
         $response["error"] = true;
         $response["message"] = "Book already bookmarked";
         echoResponse(200, $response);
@@ -727,7 +806,7 @@ $app->post('/userLikedBooks',function() use ($app){
         $response[$i]["id"] = $book["id"];
         $response[$i]["name"] = $book["BName"];
         $response[$i]["author"] = $book["author"];
-        $response[$i]["publication"] = $book["publication"];
+        $response[$i]["publisherID"] = $book["publisherID"];
         $response[$i]["title"] = $book["title"];
         $i++;
     }
@@ -737,7 +816,7 @@ $app->post('/userLikedBooks',function() use ($app){
 });
 
 $app->get('/getBook', function () use ($app){
-    $id = $app->request->get('id');
+    $id = $app->request->get('bookID');
 
     $db = new DbOperation();
     $book = $db->getBook($id);
@@ -746,366 +825,171 @@ $app->get('/getBook', function () use ($app){
     $response[0]["id"] = $book["id"];
     $response[0]["name"] = $book["BName"];
     $response[0]["author"] = $book["author"];
-    $response[0]["publication"] = $book["publication"];
+    $response[0]["publisherID"] = $book["publisherID"];
     $response[0]["title"] = $book["title"];
     $response[0]["likes"] = $book["likes"];
     $response[0]["bookmark"] = $book["bookmark"];
     $response[0]["img"] = $book["img"];
     $response[0]["url"] = $book["bookUrl"];
+    $response[0]["salePrice"] = $book["salePrice"];
     echoResponse(200,$response);
 });
 
+$app->post('/addPublisher',function() use ($app){
+    //verifying required parameters
+    verifyRequiredParams(array('name','email','country'));
+ 
+    //getting post values
+    $name = $app->request->post('name');
+    $email = $app->request->post('email');
+    $country = $app->request->post('country');
+
+    $target_dir = "../uploads/images/";
+    $target_file = $target_dir . basename($_FILES["image"]["name"]);
+    $uploadOk = 1;
+    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+    $filename = basename( $_FILES['image']['name']);
+    $path_parts = pathinfo($_FILES["image"]["name"]);
+    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
+    $target_image = $target_dir.$image_path;
+
+    $check = getimagesize($_FILES["image"]["tmp_name"]);
+    if($check !== false) {
+        $response["error"] = false;
+        $uploadOk = 1;
+    } else {
+        $response["error"] = true;
+        $response["imageUpload"] = "File is not an image.";
+        $uploadOk = 0;
+    }
+
+    if (($response["error"] == false) && ($_FILES["image"]["size"] > 500000)) {
+        $response["error"] = true;
+        $response["imageUpload"] = "Sorry, your file is too large.";
+        $uploadOk = 0;
+    }
+
+    if(($response["error"] == false) && ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg")) {
+        
+        $response["error"] == true;
+        $response["imageUpload"] = "Sorry, only JPG, JPEG, PNG files are allowed.";
+        $uploadOk = 0;
+    }
+
+    if ($uploadOk == 1) {
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_image)) {
+            $response["error"] = false;
+            $response["imageUpload"] = "The file ". basename( $_FILES["image"]["name"]). " has been uploaded.";
+            $img = $target_image;
+        } else {
+            $response["error"] = true;
+            $response["imageUpload"] = "Sorry, there was an error uploading your file.";
+        }
+    }
+ 
+ 
+
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Calling the method createStudent to add student to the database
+    $res = $db->addPublisher($name,$email,$country,$img);
+ 
+    //If the result returned is 0 means success
+    if ($res == 0) {
+        $response["error"] = false;
+        $response["message"] = "Publisher added successfully!";
+        echoResponse(201, $response);
+ 
+    } else if ($res == 1) {
+        $response["error"] = true;
+        $response["message"] = "Error";
+        echoResponse(200, $response);
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "Publisher with email ".$email." already exists";
+        echoResponse(200, $response);
+    }
+});
+
+$app->post('/showPublishers',function() use ($app){
+ 
+    //Creating DbOperation object
+    $db = new DbOperation();
+ 
+    //Creating a response array
+    $response = array();
+
+    //Getting user detail
+    $publishers = $db->showPublishers();
+    // $response['books'] = $books;
+    $i = 0;
+    foreach($publishers as $k=>$value){
+        $response[$i]["id"] = $value[0];
+        $response[$i]["name"] = $value[1];
+        $response[$i]["email"] = $value[2];
+        $response[$i]["numBooks"] = $value[3];
+        $response[$i]["country"] = $value[4];
+        $i++;
+    }
+ 
+    //Displaying the response
+    echoResponse(200,$response);
+});
+
+$app->get('/getPublisher', function () use ($app){
+    $id = $app->request->get('publisherID');
+
+    $db = new DbOperation();
+    $publisher = $db->getPublisher($id);
+    // $response = array();
+
+    if($publisher["id"] == null) {
+        $response["error"] = true;
+        $response["message"] = "Publisher with publisherID ".$id." does not exists";
+        echoResponse(201,$response);
+    } else {
+        $response[0]["id"] = $publisher["id"];
+        $response[0]["name"] = $publisher["name"];
+        $response[0]["email"] = $publisher["email"];
+        $response[0]["numBooks"] = $publisher["numBooks"];
+        $response[0]["country"] = $publisher["country"];
+        $response["error"] = false;
+        echoResponse(200,$response);
+    }
+});
+
 $app->get('/getPublisherBooks', function () use ($app){
-    $publisher = $app->request->get('publisher');
+    $publisher = $app->request->get('publisherID');
 
     $db = new DbOperation();
     $books = $db->getPublisherBooks($publisher);
     $response = array();
 
     $i = 0;
-    for($i=0; $i<count($books); $i++){
-        $response[$i]["id"] = $books[$i][0];
-        $response[$i]["name"] = $books[$i][1];
-        $response[$i]["author"] = $books[$i][2];
-        $response[$i]["publication"] = $books[$i][3];
-        $response[$i]["title"] = $books[$i][4];
-    }
-    echoResponse(200,$response);
-});
-
-$app->get('/getOffers', function () use ($app){
-    $rid = $app->request->get('rid');
-
-    $db = new DbOperation();
-    $offers = $db->getOffers($rid);
-    $response = array();
-
-    $i = 0;
-    for($i=0; $i<count($offers); $i++){
-        $response[$i]["name"] = $offers[$i][0];
-        $response[$i]["percentOff"] = $offers[$i][1];
-        $response[$i]["details"] = $offers[$i][2];
-        $response[$i]["restaurantID"] = $offers[$i][3];
-        $response[$i]["restaurantName"] = $offers[$i][4];
-    }
-    echoResponse(200,$response);
-});
-
-$app->post('/showOffers', function () use ($app){
-
-    $db = new DbOperation();
-    $offers = $db->showOffers();
-    $response = array();
-
-    $i = 0;
-    for($i=0; $i<count($offers); $i++){
-        $response[$i]["name"] = $offers[$i][0];
-        $response[$i]["percentOff"] = $offers[$i][1];
-        $response[$i]["details"] = $offers[$i][2];
-        $response[$i]["restaurantID"] = $offers[$i][3];
-        $response[$i]["restaurantName"] = $offers[$i][4];
-    }
-    echoResponse(200,$response);
-});
-
-$app->get('/isRestaurantLiked', function () use ($app){
-
-    $username = $app->request->get('username');
-    $rid = $app->request->get('rid');    
-
-    $db = new DbOperation();
-    $res = $db->isRestaurantLiked($username, $rid);
-
-    $response = array();
-
-    if ($res == 0) {
-        //Making the response error false
-        $response["error"] = false;
-        //Adding a success message
-        $response["isLiked"] = false;
-        //Displaying response
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
-        $response["error"] = false;
-        //Adding a success message
-        $response["isLiked"] = true;
-        echoResponse(200, $response);
-    }
-
-});
-
-$app->get('/isRestaurantFollowed', function () use ($app){
-
-    $username = $app->request->get('username');
-    $rid = $app->request->get('rid');    
-
-    $db = new DbOperation();
-    $res = $db->isRestaurantFollowed($username, $rid);
-
-    $response = array();
-
-    if ($res == 0) {
-        //Making the response error false
-        $response["error"] = false;
-        //Adding a success message
-        $response["isLiked"] = false;
-        //Displaying response
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
-        $response["error"] = false;
-        //Adding a success message
-        $response["isLiked"] = true;
-        echoResponse(200, $response);
-    }
-
-});
-
-
-
-
-
-
-
-
-
-
-/* SURPRISE API */
-
-$app->post('/addGiftType',function() use ($app){
-    //verifying required parameters
-    verifyRequiredParams(array('name','details'));
- 
-    //getting post values
-    $name = $app->request->post('name');
-    $details = $app->request->post('details');
-
-    $target_dir = "../uploads/images/";
-    $target_file = $target_dir . basename($_FILES["image"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-    $filename = basename( $_FILES['image']['name']);
-    $path_parts = pathinfo($_FILES["image"]["name"]);
-    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
-    $target_file = $target_dir.$image_path;
-
-    $check = getimagesize($_FILES["image"]["tmp_name"]);
-    if($check !== false) {
-        $response["error"] = false;
-        $uploadOk = 1;
+    if($books == null) {
+        $response["error"] = true;
+        $response["message"] = "Books with publisherID ".$publisher." does not exists";
+        echoResponse(201,$response);
     } else {
-        $response["error"] = true;
-        $response["message"] = "File is not an image.";
-        $uploadOk = 0;
-    }
-
-    if (($response["error"] == false) && ($_FILES["image"]["size"] > 500000)) {
-        $response["error"] = true;
-        $response["message"] = "Sorry, your file is too large.";
-        $uploadOk = 0;
-    }
-
-    if(($response["error"] == false) && ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg")) {
-        
-        $response["error"] == true;
-        $response["message"] = "Sorry, only JPG, JPEG, PNG files are allowed.";
-        $uploadOk = 0;
-    }
-
-    if ($uploadOk == 1) {
-        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-            $response["error"] = false;
-            $response["message"] = "The file ". basename( $_FILES["image"]["name"]). " has been uploaded.";
-            $img = $target_file;
-        } else {
-            $response["error"] = true;
-            $response["message"] = "Sorry, there was an error uploading your file.";
+        for($i=0; $i<count($books); $i++){
+            $response[$i]["id"] = $books[$i][0];
+            $response[$i]["name"] = $books[$i][1];
+            $response[$i]["author"] = $books[$i][2];
+            $response[$i]["publisherID"] = $books[$i][3];
+            $response[$i]["title"] = $books[$i][4];
         }
-    }
- 
-    $db = new DbOperation();
- 
-    $res = $db->addGiftType($name,$details,$img);
- 
-    if ($res == 0 && $img == $target_file) {
-        echoResponse(201, $response);
-    } else if ($res == 1) {
-        $response["error"] = true;
-        echoResponse(200, $response);
-    } else if ($res == 2) {
-        $response["error"] = true;
-        $response["message"] = "Sorry, this Gift is already present";
-        echoResponse(200, $response);
+        echoResponse(200,$response);
     }
 });
 
-$app->post('/showGiftTypes',function() use ($app){
- 
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Creating a response array
-    $response = array();
-
-    //Getting user detail
-    $giftTypes = $db->showGiftTypes();
-
-    $i = 0;
-    foreach($giftTypes as $k=>$value){
-        $response[$i]["id"] = $value[0];
-        $response[$i]["name"] = $value[1];
-        $response[$i]["details"] = $value[2];
-        $response[$i]["img"] = $value[3];
-        $i++;
-    }
- 
-    //Displaying the response
-    echoResponse(200,$response);
-});
-
-$app->get('/getGiftType', function () use ($app){
-    $id = $app->request->get('id');
-
-    $db = new DbOperation();
-    $giftType = $db->getGiftType($id);
-    $response = array();
-
-    $response["id"] = $giftType["id"];
-    $response["name"] = $giftType["giftName"];
-    $response["details"] = $giftType["details"];
-    $response["img"] = $giftType["img"];
-    echoResponse(200,$response);
-});
-
-$app->post('/addGift',function() use ($app){
+$app->post('/followPublisher',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('name','details','price','giftTypeID'));
- 
-    //getting post values
-    $name = $app->request->post('name');
-    $details = $app->request->post('details');
-    $price = $app->request->post('price');
-    $giftTypeID = $app->request->post('giftTypeID');
-
-    $target_dir = "../uploads/images/";
-    $target_file = $target_dir . basename($_FILES["image"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-    $filename = basename( $_FILES['image']['name']);
-    $path_parts = pathinfo($_FILES["image"]["name"]);
-    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
-    $target_file = $target_dir.$image_path;
-
-    $check = getimagesize($_FILES["image"]["tmp_name"]);
-    if($check !== false) {
-        $response["error"] = false;
-        $uploadOk = 1;
-    } else {
-        $response["error"] = true;
-        $response["message"] = "File is not an image.";
-        $uploadOk = 0;
-    }
-
-    if (($response["error"] == false) && ($_FILES["image"]["size"] > 500000)) {
-        $response["error"] = true;
-        $response["message"] = "Sorry, your file is too large.";
-        $uploadOk = 0;
-    }
-
-    if(($response["error"] == false) && ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg")) {
-        
-        $response["error"] == true;
-        $response["message"] = "Sorry, only JPG, JPEG, PNG files are allowed.";
-        $uploadOk = 0;
-    }
-
-    if ($uploadOk == 1) {
-        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-            $response["error"] = false;
-            $response["message"] = "The file ". basename( $_FILES["image"]["name"]). " has been uploaded.";
-            $img = $target_file;
-        } else {
-            $response["error"] = true;
-            $response["message"] = "Sorry, there was an error uploading your file.";
-        }
-    }
- 
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Calling the method createStudent to add student to the database
-    $res = $db->addGift($name,$details,$price,$img,$giftTypeID);
- 
-    //If the result returned is 0 means success
-    if ($res == 0 && $img == $target_file) {
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
-        echoResponse(200, $response);
- 
-    //If the result returned is 2 means user already exist
-    } else if ($res == 2) {
-        $response["error"] = true;
-        $response["message"] = "Sorry, this Gift is already present";
-        echoResponse(200, $response);
-    }
-});
-
-$app->post('/showGifts',function() use ($app){
- 
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Creating a response array
-    $response = array();
-
-    //Getting user detail
-    $giftTypes = $db->showGifts();
-
-    $i = 0;
-    foreach($gifts as $k=>$value){
-        $response[$i]["id"] = $value[0];
-        $response[$i]["name"] = $value[1];
-        $response[$i]["details"] = $value[2];
-        $response[$i]["price"] = $value[3];
-        $response[$i]["img"] = $value[4];
-        $response[$i]["giftTypeID"] = $value[5];
-        $i++;
-    }
- 
-    //Displaying the response
-    echoResponse(200,$response);
-});
-
-$app->get('/getGift', function () use ($app){
-    $id = $app->request->get('id');
-
-    $db = new DbOperation();
-    $gift = $db->getGift($id);
-    $response = array();
-
-    $response["id"] = $gift["id"];
-    $response["name"] = $gift["giftName"];
-    $response["details"] = $gift["details"];
-    $response["giftTypeID"] = $gift["giftTypeID"];
-    $response[$i]["price"] = $value["price"];
-    $response[$i]["img"] = $value["img"];
-    echoResponse(200,$response);
-});
-
-$app->post('/purchaseGift',function() use ($app){
-    //verifying required parameters
-    verifyRequiredParams(array('username','giftID','giftTypeID','paymentID'));
+    verifyRequiredParams(array('username','publisherID'));
  
     //getting post values
     $username = $app->request->post('username');
-    $giftID = $app->request->post('giftID');
-    $giftTypeID = $app->request->post('giftTypeID');
-    $paymentID = $app->request->post('paymentID');
+    $publisherID = $app->request->post('publisherID');
  
     //Creating DbOperation object
     $db = new DbOperation();
@@ -1113,76 +997,7 @@ $app->post('/purchaseGift',function() use ($app){
     $response = array();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->purchaseGift($username,$giftID,$giftTypeID,$paymentID);
- 
-    //If the result returned is 0 means success
-    if ($res == 0) {
-        //Making the response error false
-        $response["error"] = false;
-        //Adding a success message
-        $response["message"] = "Success";
-        //Displaying response
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
-        $response["error"] = true;
-        $response["message"] = "Error";
-        echoResponse(200, $response);
- 
-    //If the result returned is 2 means user already exist
-    }
-});
-
-$app->post('/sendGift',function() use ($app){
-    //verifying required parameters
-    verifyRequiredParams(array('sender','recipient','purchaseID'));
- 
-    //getting post values
-    $sender = $app->request->post('sender');
-    $recipient = $app->request->post('recipient');
-    $purchaseID = $app->request->post('purchaseID');
- 
-    //Creating DbOperation object
-    $db = new DbOperation();
-
-    $response = array();
- 
-    //Calling the method createStudent to add student to the database
-    $res = $db->sendGift($sender,$recipient,$purchaseID);
- 
-    //If the result returned is 0 means success
-    if ($res == 0) {
-        //Making the response error false
-        $response["error"] = false;
-        //Adding a success message
-        $response["message"] = "Success";
-        //Displaying response
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
-        $response["error"] = true;
-        $response["message"] = "Error";
-        echoResponse(200, $response);
-    } 
-});
-
-$app->post('/followUser',function() use ($app){
-    //verifying required parameters
-    verifyRequiredParams(array('followedBy','followedTo'));
- 
-    //getting post values
-    $followedBy = $app->request->post('followedBy');
-    $followedTo = $app->request->post('followedTo');
- 
-    //Creating DbOperation object
-    $db = new DbOperation();
-
-    $response = array();
- 
-    //Calling the method createStudent to add student to the database
-    $res = $db->followUser($followedBy,$followedTo);
+    $res = $db->followPublisher($username,$publisherID);
  
     //If the result returned is 0 means success
     if ($res == 0) {
@@ -1202,22 +1017,34 @@ $app->post('/followUser',function() use ($app){
     //If the result returned is 2 means user already exist
     } else if ($res == 2) {
         $response["error"] = true;
-        $response["message"] = "User already followed";
+        $response["message"] = "Publisher with [publisherID] ".$publisherID." does not exists.";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "User with username ".$username." does not exists.";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 4) {
+        $response["error"] = true;
+        $response["message"] = "Publisher already followed";
         echoResponse(200, $response);
  
     //If the result returned is 2 means user already exist
     }
 });
 
-$app->post('/isUserFollowed', function () use ($app){
+$app->post('/isPublisherFollowed', function () use ($app){
 
-    verifyRequiredParams(array('followedBy','followedTo'));
+    verifyRequiredParams(array('username','publisherID'));
 
-    $followedBy = $app->request->post('followedBy'); 
-    $followedTo = $app->request->post('followedTo');
+    $username = $app->request->post('username'); 
+    $publisherID = $app->request->post('publisherID');
 
     $db = new DbOperation();
-    $res = $db->isUserFollowed($followedBy,$followedTo);
+    $res = $db->isPublisherFollowed($username,$publisherID);
 
     $response = array();
 
@@ -1225,7 +1052,7 @@ $app->post('/isUserFollowed', function () use ($app){
         //Making the response error false
         $response["error"] = false;
         //Adding a success message
-        $response["isFollowed"] = false;
+        $response["isFollowed"] = true;
         //Displaying response
         echoResponse(201, $response);
  
@@ -1233,13 +1060,25 @@ $app->post('/isUserFollowed', function () use ($app){
     } else if ($res == 1) {
         $response["error"] = false;
         //Adding a success message
-        $response["isFollowed"] = true;
+        $response["isFollowed"] = false;
         echoResponse(200, $response);
+    } else if ($res == 2) {
+        $response["error"] = true;
+        $response["message"] = "User with username ".$username." does not exists.";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "Publisher with ID ".$publisherID." does not exists.";
+        echoResponse(200, $response);
+ 
+    //If the result returned is 2 means user already exist
     }
 
 });
 
-$app->get('/usersFollowed',function() use ($app){
+$app->get('/getFollowedPublishers',function() use ($app){
     
     //getting post values
     $username = $app->request->get('username');
@@ -1250,240 +1089,221 @@ $app->get('/usersFollowed',function() use ($app){
     $response = array();
 
     //Getting user detail
-    $users = $db->usersFollowed($username);
+    $publishers = $db->getFollowedPublishers($username);
 
-    $i = 0;
-    foreach($users as $k=>$value){
-        $response[$i]["id"] = $value[0];
-        $response[$i]["followedBy"] = $value[1];
-        $response[$i]["followedTo"] = $value[2];
-        $response[$i]["timestamp"] = $value[3];
-        $i++;
+    if($publishers == null) {
+        $response["error"] = true;
+        $response["message"] = "No publishers followed";
+        echoResponse(201,$response);
+    } else {
+        $i = 0;
+        foreach($publishers as $k=>$value){
+            $response[$i]["id"] = $value[0];
+            $response[$i]["username"] = $value[1];
+            $response[$i]["publisherID"] = $value[2];
+            $response[$i]["timestamp"] = $value[3];
+            $i++;
+        }
+        echoResponse(200,$response);
     }
- 
-    //Displaying the response
-    echoResponse(200,$response);
 });
 
-$app->post('/sendFriendRequest',function() use ($app){
+$app->post('/addOffer',function() use ($app){
     //verifying required parameters
-    verifyRequiredParams(array('sentBy','sentTo'));
+    verifyRequiredParams(array('name','percentOff','details','restaurantID', 'restaurantName'));
  
     //getting post values
-    $sentBy = $app->request->post('sentBy');
-    $sentTo = $app->request->post('sentTo');
+    $name = $app->request->post('name');
+    $percentOff = $app->request->post('percentOff');
+    $details = $app->request->post('details');
+    $restaurantID = $app->request->post('restaurantID');
+    $restaurantName = $app->request->post('restaurantName');
+
+    $target_dir = "../uploads/images/";
+    $target_file = $target_dir . basename($_FILES["image"]["name"]);
+    $uploadOk = 1;
+    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+    $filename = basename( $_FILES['image']['name']);
+    $path_parts = pathinfo($_FILES["image"]["name"]);
+    $image_path = $path_parts['filename'].'_'.date("Y-m-d_h:i:sa").'.'.$path_parts['extension'];
+    $target_image = $target_dir.$image_path;
+
+    $check = getimagesize($_FILES["image"]["tmp_name"]);
+    if($check !== false) {
+        $response["error"] = false;
+        $uploadOk = 1;
+    } else {
+        $response["error"] = true;
+        $response["imageUpload"] = "File is not an image.";
+        $uploadOk = 0;
+    }
+
+    if (($response["error"] == false) && ($_FILES["image"]["size"] > 500000)) {
+        $response["error"] = true;
+        $response["imageUpload"] = "Sorry, your file is too large.";
+        $uploadOk = 0;
+    }
+
+    if(($response["error"] == false) && ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg")) {
+        
+        $response["error"] == true;
+        $response["imageUpload"] = "Sorry, only JPG, JPEG, PNG files are allowed.";
+        $uploadOk = 0;
+    }
+
+    if ($uploadOk == 1) {
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_image)) {
+            $response["error"] = false;
+            $response["imageUpload"] = "The file ". basename( $_FILES["image"]["name"]). " has been uploaded.";
+            $img = $target_image;
+        } else {
+            $response["error"] = true;
+            $response["imageUpload"] = "Sorry, there was an error uploading your file.";
+        }
+    }
+ 
  
     //Creating DbOperation object
     $db = new DbOperation();
-
-    $response = array();
  
     //Calling the method createStudent to add student to the database
-    $res = $db->sendFriendRequest($sentBy,$sentTo);
+    $res = $db->addOffer($name,$percentOff,$details,$restaurantID,$restaurantName,$img);
  
     //If the result returned is 0 means success
-    if ($res == 0) {
-        //Making the response error false
+    if (($res == 0) && ($img == $target_image)) {
         $response["error"] = false;
-        //Adding a success message
-        $response["message"] = "Successfully sent";
-        //Displaying response
+        $response["message"] = "Success";
         echoResponse(201, $response);
  
-    //If the result returned is 1 means failure
     } else if ($res == 1) {
         $response["error"] = true;
         $response["message"] = "Error";
         echoResponse(200, $response);
- 
-    //If the result returned is 2 means user already exist
+
     } else if ($res == 2) {
         $response["error"] = true;
-        $response["message"] = "Friend Request already sent";
+        $response["message"] = "Restaurant with ID ".$restaurantID." does not have name ".$restaurantName;
         echoResponse(200, $response);
- 
-    //If the result returned is 2 means user already exist
+    } else if ($res == 3) {
+        $response["error"] = true;
+        $response["message"] = "Restaurant with ID ".$restaurantID." does not exists.";
+        echoResponse(200, $response);
     }
 });
 
-$app->post('/addFriend',function() use ($app){
-    //verifying required parameters
-    verifyRequiredParams(array('addedBy','addedTo'));
- 
-    //getting post values
-    $addedBy = $app->request->post('addedBy');
-    $addedTo = $app->request->post('addedTo');
- 
-    //Creating DbOperation object
+$app->get('/getRestaurantOffers', function () use ($app){
+    $rid = $app->request->get('restaurantID');
+
     $db = new DbOperation();
+    $offers = $db->getOffers($rid);
+    $response = array();
+
+    $i = 0;
+    for($i=0; $i<count($offers); $i++){
+        $response[$i]["name"] = $offers[$i][0];
+        $response[$i]["percentOff"] = $offers[$i][1];
+        $response[$i]["details"] = $offers[$i][2];
+        $response[$i]["restaurantID"] = $offers[$i][3];
+        $response[$i]["restaurantName"] = $offers[$i][4];
+        $response[$i]["image"] = $offers[$i][5];
+    }
+    echoResponse(200,$response);
+});
+
+$app->post('/showOffers', function () use ($app){
+
+    $db = new DbOperation();
+    $offers = $db->showOffers();
+    $response = array();
+
+    $i = 0;
+    for($i=0; $i<count($offers); $i++){
+        $response[$i]["name"] = $offers[$i][0];
+        $response[$i]["percentOff"] = $offers[$i][1];
+        $response[$i]["details"] = $offers[$i][2];
+        $response[$i]["restaurantID"] = $offers[$i][3];
+        $response[$i]["restaurantName"] = $offers[$i][4];
+        $response[$i]["image"] = $offers[$i][5];
+    }
+    echoResponse(200,$response);
+});
+
+$app->get('/isRestaurantLiked', function () use ($app){
+
+    $username = $app->request->get('username');
+    $rid = $app->request->get('restaurantID');    
+
+    $db = new DbOperation();
+    $res = $db->isRestaurantLiked($username, $rid);
 
     $response = array();
- 
-    //Calling the method createStudent to add student to the database
-    $res = $db->addFriend($addedBy,$addedTo);
- 
-    //If the result returned is 0 means success
+
     if ($res == 0) {
         //Making the response error false
         $response["error"] = false;
         //Adding a success message
-        $response["message"] = "Successfully added";
+        $response["isLiked"] = true;
         //Displaying response
         echoResponse(201, $response);
  
     //If the result returned is 1 means failure
     } else if ($res == 1) {
-        $response["error"] = true;
-        $response["message"] = "Error";
+        $response["error"] = false;
+        //Adding a success message
+        $response["isLiked"] = false;
         echoResponse(200, $response);
- 
-    //If the result returned is 2 means user already exist
     } else if ($res == 2) {
         $response["error"] = true;
-        $response["message"] = "User already added as friend";
+        //Adding a success message
+        $response["message"] = "User with username ".$username." does not exists";
         echoResponse(200, $response);
- 
-    //If the result returned is 2 means user already exist
-    }
-});
-
-$app->post('/doesFriendExists', function () use ($app){
-
-    verifyRequiredParams(array('addedBy','addedTo'));
-
-    $addedBy = $app->request->post('addedBy'); 
-    $addedTo = $app->request->post('addedTo');
-
-    $db = new DbOperation();
-    $res = $db->doesFriendExists($addedBy,$addedTo);
-
-    $response = array();
-
-    if ($res == 0) {
-        //Making the response error false
-        $response["error"] = false;
+    } else if ($res == 3) {
+        $response["error"] = true;
         //Adding a success message
-        $response["isAdded"] = false;
-        //Displaying response
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
-        $response["error"] = false;
-        //Adding a success message
-        $response["isAdded"] = true;
+        $response["message"] = "Restaurant with restaurantID ".$rid." does not exists";
         echoResponse(200, $response);
     }
 
 });
 
-$app->post('/isUserFollowed', function () use ($app){
+$app->get('/isRestaurantFollowed', function () use ($app){
 
-    verifyRequiredParams(array('followedBy','followedTo'));
-
-    $followedBy = $app->request->post('followedBy'); 
-    $followedTo = $app->request->post('followedTo');
+    $username = $app->request->get('username');
+    $rid = $app->request->get('restaurantID');    
 
     $db = new DbOperation();
-    $res = $db->isUserFollowed($followedBy,$followedTo);
+    $res = $db->isRestaurantFollowed($username, $rid);
 
     $response = array();
 
     if ($res == 0) {
         //Making the response error false
-        $response["error"] = false;
-        //Adding a success message
-        $response["isFollowed"] = false;
-        //Displaying response
-        echoResponse(201, $response);
- 
-    //If the result returned is 1 means failure
-    } else if ($res == 1) {
         $response["error"] = false;
         //Adding a success message
         $response["isFollowed"] = true;
+        //Displaying response
+        echoResponse(201, $response);
+ 
+    //If the result returned is 1 means failure
+    } else if ($res == 1) {
+        $response["error"] = false;
+        //Adding a success message
+        $response["isFollowed"] = false;
+        echoResponse(200, $response);
+    }  else if ($res == 2) {
+        $response["error"] = true;
+        //Adding a success message
+        $response["message"] = "User with username ".$username." does not exists";
+        echoResponse(200, $response);
+    } else if ($res == 3) {
+        $response["error"] = true;
+        //Adding a success message
+        $response["message"] = "Restaurant with restaurantID ".$rid." does not exists";
         echoResponse(200, $response);
     }
 
 });
-
-$app->get('/getFollowing',function() use ($app){
-    
-    //getting post values
-    $username = $app->request->get('username');
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Creating a response array
-    $response = array();
-
-    //Getting user detail
-    $users = $db->getFollowing($username);
-
-    $i = 0;
-    foreach($users as $k=>$value){
-        $response[$i]["id"] = $value[0];
-        $response[$i]["followedBy"] = $value[1];
-        $response[$i]["followedTo"] = $value[2];
-        $response[$i]["timestamp"] = $value[3];
-        $i++;
-    }
- 
-    //Displaying the response
-    echoResponse(200,$response);
-});
-
-$app->get('/getFollowers',function() use ($app){
-    
-    //getting post values
-    $username = $app->request->get('username');
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Creating a response array
-    $response = array();
-
-    //Getting user detail
-    $users = $db->getFollowers($username);
-
-    $i = 0;
-    foreach($users as $k=>$value){
-        $response[$i]["id"] = $value[0];
-        $response[$i]["followedBy"] = $value[1];
-        $response[$i]["followedTo"] = $value[2];
-        $response[$i]["timestamp"] = $value[3];
-        $i++;
-    }
- 
-    //Displaying the response
-    echoResponse(200,$response);
-});
-
-$app->get('/showFriends',function() use ($app){
-    
-    //getting post values
-    $username = $app->request->get('username');
-    //Creating DbOperation object
-    $db = new DbOperation();
- 
-    //Creating a response array
-    $response = array();
-
-    //Getting user detail
-    $users = $db->getFriends($username);
-
-    $i = 0;
-    foreach($users as $k=>$value){
-        $response[$i]["id"] = $value[0];
-        $response[$i]["addedBy"] = $value[1];
-        $response[$i]["addedTo"] = $value[2];
-        $response[$i]["timestamp"] = $value[3];
-        $i++;
-    }
- 
-    //Displaying the response
-    echoResponse(200,$response);
-});
-
 
 $app->run();
+
+?>
