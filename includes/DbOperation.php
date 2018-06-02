@@ -1,4 +1,9 @@
 <?php
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require '../vendor/autoload.php';
  
 class DbOperation
 {
@@ -19,8 +24,7 @@ class DbOperation
         $this->con = $db->connect();
     }
  
-    //Method will create a new student
-    public function createUser($name,$username,$email,$pass,$img,$phoneNum,$address){
+    public function createUser($name,$username,$email,$pass,$img,$phoneNum,$dob){
  
         //First we will check whether the student is already registered or not
         if (!$this->isUserExists($username, $email)) {
@@ -33,11 +37,11 @@ class DbOperation
             $verified = FALSE;
  
             //Crating an statement
-            $stmt = $this->con->prepare("INSERT INTO users(`UName`, `username`, `UPassword`, `email`, `apiKey`, `verified`, `img`, `phoneNum`, `UAddress`) 
+            $stmt = $this->con->prepare("INSERT INTO users(`UName`, `username`, `UPassword`, `email`, `apiKey`, `verified`, `img`, `phoneNum`, `dob`) 
             values(?, ?, ?, ?, ?, ?, ?, ?, ?)");
  
             //Binding the parameters
-            $stmt->bind_param("sssssssss", $name, $username, $password, $email, $apikey, $verified, $img, $phoneNum, $address);
+            $stmt->bind_param("sssssssss", $name, $username, $password, $email, $apikey, $verified, $img, $phoneNum, $dob);
  
             //Executing the statment
             $result = $stmt->execute();
@@ -48,7 +52,14 @@ class DbOperation
             //If statment executed successfully
             if ($result) {
                 //Returning 0 means student created successfully
-                return 0;
+                $digits = 7;
+                $otp = rand(pow(10, $digits-1), pow(10, $digits)-1);
+                $res = $this->sendMail($username, $email, $otp);
+                if($res == 1) {
+                    return 0;
+                } else {
+                    return $res;
+                }
             } else {
                 //Returning 1 means failed to create student
                 return 1;
@@ -58,15 +69,54 @@ class DbOperation
             return 2;
         }
     }
+
+    private function sendMail($username, $email, $otp) {
+        
+        $mail = new PHPMailer(true);                              // Passing `true` enables exceptions
+        try {
+            //Server settings
+            $mail->SMTPDebug = 2;                                 // Enable verbose debug output
+            $mail->isSMTP();                                      // Set mailer to use SMTP
+            $mail->Host = 'smtp.gmail.com';  // Specify main and backup SMTP servers
+            $mail->SMTPAuth = true;                               // Enable SMTP authentication
+            $mail->Username = '';                 // SMTP username
+            $mail->Password = '';                           // SMTP password
+            $mail->SMTPSecure = 'ssl';                            // Enable TLS encryption, `ssl` also accepted
+            $mail->Port = 465;                                    // TCP port to connect to
+
+            //Recipients
+            $mail->setFrom('test22091997@gmail.com', 'Paperless');
+            $mail->addAddress($email, $username);     
+
+            //Content
+            $mail->isHTML(true);                                  // Set email format to HTML
+            $mail->Subject = 'Verify';
+            $mail->Body    = 'Please verify your Paperless account by entering this OTP - '.$otp;
+
+            $mail->send();
+
+            $verified = false;
+            $stmt = $this->con->prepare("INSERT INTO verification(username, otp, verified) 
+            values(?, ?, ?)");
+            $stmt->bind_param("sss", $username, $otp, $verified);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            return 1;
+        } catch (Exception $e) {
+            return $mail->ErrorInfo;
+        }
+    }
+ 
  
     //Method for student login
-    public function userLogin($username,$pass){
+    public function userLogin($email,$pass){
         //Generating password hash
         $password = md5($pass);
         //Creating query
-        $stmt = $this->con->prepare("SELECT * FROM users WHERE username=? and UPassword=?");
+        $stmt = $this->con->prepare("SELECT * FROM users WHERE email=? and UPassword=?");
         //binding the parameters
-        $stmt->bind_param("ss",$username,$password);
+        $stmt->bind_param("ss",$email,$password);
         //executing the query
         $stmt->execute();
         //Storing result
@@ -107,11 +157,28 @@ class DbOperation
         //returning the student
         return $user;
     }
+    
+    public function getUserByEmail($email){
+        $stmt = $this->con->prepare("SELECT * FROM users WHERE email=?");
+        $stmt->bind_param("s",$email);
+        $stmt->execute();
+        //Getting the student result array
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        //returning the student
+        return $user;
+    }
 
-    public function verifyUser($username, $apikey){
-        $user = $this->getUser($username);
+    public function verifyUser($username, $otp){
+        $stmt = $this->con->prepare("SELECT * FROM verification WHERE username=?");
+        $stmt->bind_param("s",$username);
+        $stmt->execute();
+        //Getting the student result array
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
         $verified = $user["verified"];
-        if(($verified == 0) && ($user["apiKey"] == $apikey)){
+        if(($verified == 0) && ($user["otp"] == $otp)){
             $stmt = $this->con->prepare("UPDATE users SET verified=TRUE WHERE username = ?");
             $stmt->bind_param("s",$username);
             //Executing the statment
@@ -137,7 +204,7 @@ class DbOperation
     }
 
         //Method will create a new student
-    public function addRestaurant($name,$email,$contact,$address){
+    public function addRestaurant($name,$email,$contact,$address,$img){
  
         //First we will check whether the student is already registered or not
         if (!$this->isRestaurantExists($email)) {
@@ -145,10 +212,10 @@ class DbOperation
             $likes = 0;
             $stars = 0;
             //Crating an statement
-            $stmt = $this->con->prepare("INSERT INTO restaurants(RName, email, contactNum, RAddress, likes, stars) values(?, ?, ?, ?, ?, ?)");
+            $stmt = $this->con->prepare("INSERT INTO restaurants(RName, email, contactNum, RAddress, likes, stars, `image`) values(?, ?, ?, ?, ?, ?, ?)");
  
             //Binding the parameters
-            $stmt->bind_param("ssssss", $name, $email, $contact, $address, $likes, $stars);
+            $stmt->bind_param("sssssss", $name, $email, $contact, $address, $likes, $stars, $img);
  
             //Executing the statment
             $result = $stmt->execute();
@@ -545,17 +612,18 @@ class DbOperation
         return $books;
     }
 
-    public function addOffer($name,$percentOff,$details,$restaurantID,$restaurantName,$img){
+    public function addOffer($name,$percentOff,$details,$restaurantID,$restaurantName,$img,$expiry){
  
         if($this->isRestaurantExistsByID($restaurantID)) {
             
             $restaurant = $this->getRestaurant($restaurantID);
-            if($restaurantName == $restaurant["RName"]){
+            $name = $restaurant["RName"];
+            if($restaurantName == $name){
 
-                $stmt = $this->con->prepare("INSERT INTO offers(`name`,percentOff,details,restaurantID,restaurantName,`image`) values(?, ?, ?, ?, ?, ?)");
+                $stmt = $this->con->prepare("INSERT INTO offers(`name`,percentOff,details,restaurantID,restaurantName,`image`,expiry) values(?, ?, ?, ?, ?, ?, ?)");
         
                 //Binding the parameters
-                $stmt->bind_param("ssssss", $name,$percentOff,$details,$restaurantID,$restaurantName,$img);
+                $stmt->bind_param("sssssss", $name,$percentOff,$details,$restaurantID,$restaurantName,$img,$expiry);
         
                 //Executing the statment
                 $result = $stmt->execute();
@@ -635,7 +703,6 @@ class DbOperation
         }
     }
 
-    //Checking whether a student already exist
     private function isBookmarkExists($username,$bid) {
         $stmt = $this->con->prepare("SELECT id from bookmark WHERE username = ? AND bookID = ?");
         $stmt->bind_param("ss", $username, $bid);
@@ -648,6 +715,17 @@ class DbOperation
 
     public function userLikedBooks($username){
         $stmt = $this->con->prepare("SELECT bookID FROM bookLikes WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        //Getting the student result array
+        $books = $stmt->get_result()->fetch_all();
+        $stmt->close();
+        //returning the student
+        return $books;
+    }
+    
+    public function userBookmarkedBooks($username){
+        $stmt = $this->con->prepare("SELECT bookID FROM bookmark WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
         //Getting the student result array
@@ -739,5 +817,277 @@ class DbOperation
         } else {
             return 3;
         }
+    }
+    
+    public function isBookLiked($username,$bid){
+        if($this->isBookExists($bid)) {
+            if($this->isUserExists($username)) {
+                $stmt = $this->con->prepare("SELECT * FROM bookLikes WHERE username=? and bookID=?");
+                //binding the parameters
+                $stmt->bind_param("ss",$username,$bid);
+                //executing the query
+                $stmt->execute();
+                //Storing result
+                $stmt->store_result();
+                //Getting the result
+                $num_rows = $stmt->num_rows;
+                //closing the statment
+                $stmt->close();
+                //If the result value is greater than 0 means user found in the database with given username and password
+                //So returning true
+                if($num_rows>0) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                return 2;
+            }
+        } else {
+            return 3;
+        }
+    }
+
+    public function isBookBookmarked($username,$bid){
+        if($this->isBookExists($bid)) {
+            if($this->isUserExists($username)) {
+                $stmt = $this->con->prepare("SELECT * FROM bookmark WHERE username=? and bookID=?");
+                //binding the parameters
+                $stmt->bind_param("ss",$username,$bid);
+                //executing the query
+                $stmt->execute();
+                //Storing result
+                $stmt->store_result();
+                //Getting the result
+                $num_rows = $stmt->num_rows;
+                //closing the statment
+                $stmt->close();
+                //If the result value is greater than 0 means user found in the database with given username and password
+                //So returning true
+                if($num_rows>0){
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                return 2;
+            }
+        } else {
+            return 3;
+        }
+    }
+
+    public function getAllUsers(){
+        $stmt = "SELECT * FROM users";
+        $result = $this->con->query($stmt);
+        $users = $result->fetch_all();
+        return $users;
+    }
+
+    public function sendMessage($sender, $recipient, $message){
+        if($this->isUserExists($sender)) {
+            if($this->isUserExists($recipient)) {
+                $stmt = $this->con->prepare("INSERT INTO messages(sender, recipient, `message`) VALUES(?, ?, ?)");
+                $stmt->bind_param("sss",$sender,$recipient,$message);
+                $result = $stmt->execute();
+                $stmt->close();
+
+                if($result){
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                return 2;
+            }
+        } else {
+            return 3;
+        }
+    }
+
+    public function getMessageBetween($firstUser, $secondUser){
+        if($this->isUserExists($firstUser)) {
+            if($this->isUserExists($secondUser)) {
+                $stmt = $this->con->prepare("SELECT * FROM messages WHERE sender = ? AND recipient = ?");
+                $stmt->bind_param("ss",$firstUser,$secondUser);
+                $stmt->execute();
+                //Getting the student result array
+                $messages1 = $stmt->get_result()->fetch_all();
+                $stmt->close();
+
+                $stmt = $this->con->prepare("SELECT * FROM messages WHERE sender = ? AND recipient = ?");
+                $stmt->bind_param("ss",$secondUser,$firstUser);
+                $stmt->execute();
+                //Getting the student result array
+                $messages2 = $stmt->get_result()->fetch_all();
+                $stmt->close();
+                return $messages1 + $messages2;
+            } else {
+                return 1;
+            }
+        } else {
+            return 2;
+        }
+    }
+    
+    
+    public function unlikeBook($username,$bid){
+        if ($this->isBLikeExists($username,$bid)) {
+            if($this->isUserExists($username)) {
+                if($this->isBookExists($bid)) {
+                    $stmt = $this->con->prepare("DELETE FROM bookLikes WHERE username = ? AND bookID = ?");
+                    $stmt->bind_param("ss",$username,$bid);
+                    $result = $stmt->execute();
+                    //Closing the statment
+                    $stmt->close();
+
+                    //If statment executed successfully
+                    if ($result) {
+                        $book = $this->getBook($bid);
+                        $likes = $book["likes"] - 1;
+
+                        $stmt = $this->con->prepare("UPDATE books SET likes = ? WHERE id = ?");
+                        $stmt->bind_param("ss",$likes,$bid);
+                        $stmt->execute();
+                        $stmt->close();
+
+                        return 0;
+                    } else {
+                        //Returning 1 means failed to create student
+                        return 1;
+                    }
+                } else {
+                    return 2;
+                }
+            } else {
+                return 3;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 4;
+        }
+    }
+
+    public function unfollowPublisher($username,$publisherID){
+        if (!$this->isPublisherFollowed($username,$publisherID)) {
+            if($this->isUserExists($username)) {
+                if($this->isPublisherExists($publisherID)) {
+                    $stmt = $this->con->prepare("DELETE FROM publisherFollows WHERE username = ? AND publisherID = ?");
+                    $stmt->bind_param("ss",$username,$publisherID);
+                    $result = $stmt->execute();
+                    //Closing the statment
+                    $stmt->close();
+
+                    //If statment executed successfully
+                    if ($result) {
+                        //Returning 0 means student created successfully
+                        return 0;
+                    } else {
+                        //Returning 1 means failed to create student
+                        return 1;
+                    }
+                } else {
+                    return 2;
+                }
+            } else {
+                return 3;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 4;
+        }
+    }
+
+    public function removeBookmark($username,$bid){
+        if($this->isUserExists($username)) {
+            if($this->isBookExists($bid)) {
+                if ($this->isBookmarkExists($username,$bid)) {
+                    $stmt = $this->con->prepare("DELETE FROM bookmark WHERE username = ? AND bookID = ?");
+                    $stmt->bind_param("ss",$username,$bid);
+                    $result = $stmt->execute();
+                    //Closing the statment
+                    $stmt->close();
+
+                    //If statment executed successfully
+                    if ($result) {
+                        //Returning 0 means student created successfully
+                        $book = $this->getBook($bid);
+                        $bookmark = $book["bookmark"] - 1;
+
+                        $stmt = $this->con->prepare("UPDATE books SET bookmark = ? WHERE id = ?");
+                        $stmt->bind_param("ss",$bookmark,$bid);
+                        $stmt->execute();
+                        $stmt->close();
+
+                        return 0;
+                    } else {
+                        //Returning 1 means failed to create student
+                        return 1;
+                    }
+                } else {
+                    return 2;
+                }
+            } else {
+                return 3;
+            }
+        } else {
+            //returning 2 means user already exist in the database
+            return 4;
+        }
+    }
+
+    public function downloadBook($username,$bid){
+            if($this->isUserExists($username)) {
+                if($this->isBookExists($bid)) {
+
+                    $stmt = $this->con->prepare("SELECT * FROM downloadBook WHERE username=? and bookID=?");
+                    $stmt->bind_param("ss",$username,$bid);
+                    $stmt->execute();
+                    $stmt->store_result();
+                    $num_rows = $stmt->num_rows;
+                    $stmt->close();
+                    
+                    if($num_rows == 0) {
+                        $stmt = $this->con->prepare("INSERT INTO downloadBook(username, bookID) VALUES(?,?)");
+                        $stmt->bind_param("ss",$username,$bid);
+                        $result = $stmt->execute();
+                        //Closing the statment
+                        $stmt->close();
+
+                        //If statment executed successfully
+                        if ($result) {
+                            $book = $this->getBook($bid);
+                            $downloads = $book["downloads"] + 1;
+
+                            $stmt = $this->con->prepare("UPDATE books SET downloads = ? WHERE id = ?");
+                            $stmt->bind_param("ss",$downloads,$bid);
+                            $stmt->execute();
+                            $stmt->close();
+
+                            return 0;
+                        } else {
+                            //Returning 1 means failed to create student
+                            return 1;
+                        }
+                    } else {
+                        return 4;
+                    }
+                } else {
+                    return 2;
+                }
+            } else {
+                return 3;
+            }
+    }
+
+    public function downloadedBooks($username){
+        $stmt = $this->con->prepare("SELECT bookID FROM downloadBook WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        //Getting the student result array
+        $books = $stmt->get_result()->fetch_all();
+        $stmt->close();
+        //returning the student
+        return $books;
     }
 }

@@ -7,9 +7,9 @@
     - username (unique)
     - email
     - phoneNum
-    - address
+    - dob
     - password  
-    - image (File Type) 
+    - image (File Type)
 
 2. *POST* - ```https://paperlessapi.000webhostapp.com/userLogin```
   
@@ -17,11 +17,11 @@
     - username
     - password  
 
-3. *GET* - ```https://surpriseapi.000webhostapp.com/verifyUser```
+3. *GET* - ```https://paperlessapi.000webhostapp.com/verifyUser```
   
 	*Required Parameters*  
     - username
-    - apikey 
+    - otp 
 
 4. ```https://paperlessapi.000webhostapp.com/showRestaurants```
   
@@ -35,6 +35,7 @@
     - email (unique)
     - contact
     - address  
+    - image
 
 6. *POST* - ```https://paperlessapi.000webhostapp.com/likeRestaurant```
   
@@ -147,7 +148,7 @@
     - username
     - publisherID
 
-25. *POST* - ```https://paperlessapi.000webhostapp.com/getFolowedPublishers```
+25. *GET* - ```https://paperlessapi.000webhostapp.com/getFollowedPublishers```
 
     *Required Parameters*
     - username
@@ -158,6 +159,86 @@
     - No params required
 
 27. *POST* - ```https://paperlessapi.000webhostapp.com/userLikedBooks```
+  
+	*Required Parameters*  
+    - username
+
+28. *POST* - ```https://paperlessapi.000webhostapp.com/getAllUsers```
+  
+	*Required Parameters*  
+    - No params
+
+29. *POST* - ```https://paperlessapi.000webhostapp.com/sendMessage```
+  
+	*Required Parameters*  
+    - sender
+    - recipient
+    - message
+
+30. *POST* - ```https://paperlessapi.000webhostapp.com/getMessageBetween```
+  
+	*Required Parameters*  
+    - firstUser
+    - secondUser
+
+31. *GET* - ```https://paperlessapi.000webhostapp.com/isBookLiked```
+  
+	*Required Parameters*
+    - username
+    - bookID
+
+32. *GET* - ```https://paperlessapi.000webhostapp.com/isBookBookmarked```
+  
+	*Required Parameters*
+    - username
+    - bookID
+
+33. *POST* - ```https://paperlessapi.000webhostapp.com/getRecentPublishers```
+
+    *Required Parameters*
+    - No params required
+
+34. *POST* - ```https://paperlessapi.000webhostapp.com/unlikeBook```
+
+    *Required Parameters*
+    - username
+    - bookID
+
+35. *POST* - ```https://paperlessapi.000webhostapp.com/unfollowPublisher```
+
+    *Required Parameters*
+    - username
+    - publisherID
+
+36. *POST* - ```https://paperlessapi.000webhostapp.com/removeBookmark```
+
+    *Required Parameters*
+    - username
+    - bookID
+
+37. *POST* - ```https://paperlessapi.000webhostapp.com/downloadBook```
+
+    *Required Parameters*
+    - username
+    - bookID
+
+38. *POST* - ```https://paperlessapi.000webhostapp.com/downloadedBooks```
+
+    *Required Parameters*
+    - username
+
+39. *POST* - ```https://paperlessapi.000webhostapp.com/addOffer```
+  
+	*Required Parameters*  
+    - name
+    - percentOff
+    - details
+    - restaurantID
+    - restaurantName
+    - expiry
+    - image (File Type) 
+
+40. *POST* - ```https://paperlessapi.000webhostapp.com/userBookmarkedBooks```
   
 	*Required Parameters*  
     - username
